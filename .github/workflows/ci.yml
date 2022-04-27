@@ -1,6 +1,6 @@
 name: CI
 
-on: [ push, pull_request, workflow_dispatch ]
+on: [ push]
 
 jobs:
   CI:
@@ -24,12 +24,6 @@ jobs:
             os: macos-11
             build: { cc: clang, cxx: clang++, linker: ld.lld }
             shell: bash
-
-          # TODO: Re-enable self-hosted M1 runner provided by MacStadium
-          #- name: "macOS (10.15) - Xcode 12.4 - M1"
-          #  os: macos-m1
-          #  build: { cc: clang, cxx: clang++, linker: ld.lld }
-          #  shell: "/usr/bin/arch -arch arm64e /bin/bash -l {0}"
 
     defaults:
       run:
@@ -100,7 +94,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           echo "JOBS=$(sysctl -n hw.logicalcpu)" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$(brew --prefix jpeg-turbo)/lib/pkgconfig:$(brew --prefix libxml2)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(pwd)/lib/pkgconfig:$(brew --prefix jpeg-turbo)/lib/pkgconfig:$(brew --prefix libxml2)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Prepare sanitizers
         if: matrix.build.sanitize
@@ -128,10 +122,41 @@ jobs:
 
       - name: Configure libvips
         run:
-          meson setup build
-            -Ddebug=true
-            -Ddeprecated=false
-            -Dintrospection=false
+          meson setup build --prefix=/tmp/vips \
+            -Dcfitsio=disabled \
+            -Dcgif=disabled \
+            -Dexif=disabled \
+            -Dfftw=disabled \
+            -Dfontconfig=disabled \
+            -Dgsf=disabled \
+            -Dheif=disabled \
+            -Dheif-module=disabled \
+            -Dimagequant=disabled \
+            -Djpeg=disabled \
+            -Djpeg-xl=disabled \
+            -Djpeg-xl-module=disabled \
+            -Dlcms=disabled \
+            -Dmagick=disabled \
+            -Dmagick-module=disabled \
+            -Dmatio=disabled \
+            -Dnifti=disabled \
+            -Dopenexr=disabled \
+            -Dopenjpeg=disabled \
+            -Dopenslide=disabled \
+            -Dopenslide-module=disabled \
+            -Dorc=disabled \
+            -Dpangocairo=disabled \
+            -Dpng=disabled \
+            -Dquantizr=disabled \
+            -Drsvg=disabled \
+            -Dspng=disabled \
+            -Dtiff=disabled \
+            -Dwebp=disabled \
+            -Dzlib=disabled \
+            -Dpoppler-module=disabled \
+            -Dpoppler=disabled \
+            -Dpdfium=enabled \
+            --buildtype=release
           || (cat build/meson-logs/meson-log.txt && exit 1)
 
       - name: Build libvips
@@ -142,6 +167,12 @@ jobs:
 
       - name: Install libvips
         run: sudo ninja -C build install
+
+      - uses: actions/upload-artifact@v3
+        if: runner.os == 'macOS'
+        with:
+          name: libvips Macos 
+          path: /tmp/vips/ 
 
       - name: Rebuild the shared library cache
         if: runner.os == 'Linux'
