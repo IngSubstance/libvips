@@ -94,12 +94,13 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           echo "JOBS=$(sysctl -n hw.logicalcpu)" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$(pwd)/lib/pkgconfig:$(brew --prefix jpeg-turbo)/lib/pkgconfig:$(brew --prefix libxml2)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(pwd)/pdfium/lib/pkgconfig:$(brew --prefix jpeg-turbo)/lib/pkgconfig:$(brew --prefix libxml2)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
           wget https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F5024/pdfium-mac-x64.tgz
-          tar -xvf pdfium-mac-x64.tgz
-          mkdir $(pwd)/lib/pkgconfig/
-          cat > $(pwd)/lib/pkgconfig/pdfium.pc <<'EOF'
-          prefix=${{github.workspace}}
+          mkdir pdfium
+          tar -xvf  pdfium-mac-x64.tgz -C pdfium 
+          mkdir $(pwd)/pdfium/lib/pkgconfig/
+          cat > $(pwd)/pdfium/lib/pkgconfig/pdfium.pc <<'EOF'
+          prefix=${{github.workspace}}/pdfium
           exec_prefix=${prefix}
           libdir=${exec_prefix}/lib
           includedir=${prefix}/include
@@ -110,7 +111,6 @@ jobs:
           Libs: -L${libdir} -lpdfium
           Cflags: -I${includedir}
           EOF
-          cat $(pwd)/lib/pkgconfig/pdfium.pc
 
       - name: Prepare sanitizers
         if: matrix.build.sanitize
